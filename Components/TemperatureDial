@@ -1,0 +1,250 @@
+import React, { useRef, useEffect, useState } from "react";
+import { Thermometer } from "lucide-react";
+
+export default function TemperatureDial({ 
+  temperature, 
+  onTemperatureChange, 
+  unit = "fahrenheit",
+  size = 280,
+  interactive = true 
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const dialRef = useRef(null);
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const radius = size * 0.32;
+  const strokeWidth = size * 0.06;
+
+  const minTemp = unit === "fahrenheit" ? 32 : 0;
+  const maxTemp = unit === "fahrenheit" ? 120 : 50;
+  
+  const tempToAngle = (temp) => {
+    const percentage = Math.max(0, Math.min(1, (temp - minTemp) / (maxTemp - minTemp)));
+    return -135 + (percentage * 270);
+  };
+
+  const angleToTemp = (angle) => {
+
+    let normalizedAngle = angle + 135;
+    if (normalizedAngle < 0) normalizedAngle += 360;
+    if (normalizedAngle > 270) normalizedAngle = 270;
+    if (normalizedAngle < 0) normalizedAngle = 0;
+    
+    const percentage = normalizedAngle / 270;
+    return Math.round(minTemp + (percentage * (maxTemp - minTemp)));
+  };
+
+  const handleInteraction = (clientX, clientY) => {
+    if (!dialRef.current || !interactive) return;
+
+    const rect = dialRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    const deltaX = clientX - centerX;
+    const deltaY = clientY - centerY;
+    const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+    
+    const newTemp = angleToTemp(angle);
+    onTemperatureChange(newTemp);
+  };
+
+  const handleMouseDown = (e) => {
+    if (!interactive) return;
+    setIsDragging(true);
+    handleInteraction(e.clientX, e.clientY);
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging && interactive) {
+      handleInteraction(e.clientX, e.clientY);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e) => {
+    if (!interactive) return;
+    setIsDragging(true);
+    const touch = e.touches[0];
+    handleInteraction(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    if (isDragging && interactive) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleInteraction(touch.clientX, touch.clientY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging && interactive) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging]);
+
+  const progressPercentage = Math.max(0, Math.min(1, (temperature - minTemp) / (maxTemp - minTemp)));
+
+  const getTemperatureColor = (percentage) => {
+    if (percentage < 0.4) return '#34C759'; // iOS Green
+    if (percentage < 0.6) return '#FF9500'; // iOS Orange  
+    if (percentage < 0.8) return '#FF6B35'; // iOS Red-Orange
+    return '#FF3B30'; // iOS Red
+  };
+
+  const temperatureLabels = unit === "fahrenheit" 
+    ? [40, 60, 80, 100, 120]
+    : [5, 15, 25, 35, 45];
+
+  return (
+    <div className="flex flex-col items-center">
+      <div 
+        ref={dialRef}
+        className={`relative bg-white rounded-full shadow-2xl ${interactive ? 'cursor-pointer' : ''} select-none`}
+        style={{ 
+          width: size, 
+          height: size,
+          boxShadow: `
+            0 20px 60px rgba(0, 0, 0, 0.1),
+            0 8px 25px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8)
+          `
+        }}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <svg
+          width={size}
+          height={size}
+          className="absolute inset-0"
+          style={{ transform: 'rotate(-90deg)' }}
+        >
+          <defs>
+            <linearGradient id="temperatureGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#34C759" />
+              <stop offset="40%" stopColor="#FF9500" />
+              <stop offset="70%" stopColor="#FF6B35" />
+              <stop offset="100%" stopColor="#FF3B30" />
+            </linearGradient>
+            
+            <filter id="glowEffect">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge> 
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          
+          {/* Background track */}
+          <path
+            d={`M ${centerX - radius * Math.cos(Math.PI * 3/4)} ${centerY - radius * Math.sin(Math.PI * 3/4)} 
+                A ${radius} ${radius} 0 1 1 
+                ${centerX + radius * Math.cos(Math.PI * 3/4)} ${centerY - radius * Math.sin(Math.PI * 3/4)}`}
+            fill="none"
+            stroke="#F2F2F7"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+          
+          {/* Progress arc with iOS gradient */}
+          <path
+            d={`M ${centerX - radius * Math.cos(Math.PI * 3/4)} ${centerY - radius * Math.sin(Math.PI * 3/4)} 
+                A ${radius} ${radius} 0 ${progressPercentage > 0.5 ? 1 : 0} 1 
+                ${centerX + radius * Math.cos(Math.PI * 3/4 - progressPercentage * Math.PI * 1.5)} 
+                ${centerY - radius * Math.sin(Math.PI * 3/4 - progressPercentage * Math.PI * 1.5)}`}
+            fill="none"
+            stroke="url(#temperatureGradient)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            filter="url(#glowEffect)"
+          />
+          
+          {/* Interactive indicator */}
+          {interactive && (
+            <circle
+              cx={centerX + radius * Math.cos(Math.PI * 3/4 - progressPercentage * Math.PI * 1.5)}
+              cy={centerY - radius * Math.sin(Math.PI * 3/4 - progressPercentage * Math.PI * 1.5)}
+              r={strokeWidth * 0.8}
+              fill="white"
+              stroke={getTemperatureColor(progressPercentage)}
+              strokeWidth={3}
+              className={`transition-all duration-200 ${isDragging ? "scale-110" : ""}`}
+              style={{
+                filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))'
+              }}
+            />
+          )}
+        </svg>
+
+        {/* Temperature labels */}
+        {temperatureLabels.map((temp, index) => {
+          const angle = -135 + (index / (temperatureLabels.length - 1)) * 270;
+          const labelRadius = radius + strokeWidth * 1.2;
+          const labelX = centerX + labelRadius * Math.cos((angle * Math.PI) / 180);
+          const labelY = centerY + labelRadius * Math.sin((angle * Math.PI) / 180);
+          
+          return (
+            <div
+              key={index}
+              className="absolute text-xs font-semibold text-gray-400"
+              style={{
+                left: labelX - 12,
+                top: labelY - 8,
+                width: 24,
+                textAlign: 'center',
+              }}
+            >
+              {temp}
+            </div>
+          );
+        })}
+
+        {/* Center content with iOS styling */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-4 shadow-lg">
+            <Thermometer className="w-7 h-7 text-white" />
+          </div>
+          <div className="text-center">
+            <div className="text-5xl font-bold text-gray-900 mb-1 tracking-tight">
+              {Math.round(temperature)}°
+            </div>
+            <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+              {unit === "fahrenheit" ? "Fahrenheit" : "Celsius"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* iOS-style temperature scale */}
+      <div className="mt-8 flex items-center gap-6 px-6 py-3 bg-white rounded-2xl shadow-lg">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <span className="text-sm font-medium text-gray-700">Safe</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+          <span className="text-sm font-medium text-gray-700">Caution</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+          <span className="text-sm font-medium text-gray-700">Dangerous</span>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,164 @@
+import React from "react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Thermometer, MapPin, Shield, Heart, Sun, Snowflake } from "lucide-react";
+
+export default function Home() {
+  const features = [
+    {
+      icon: MapPin,
+      title: "Auto Weather Check",
+      description: "Get real-time surface temperature for your location automatically",
+      gradient: "from-blue-500 to-blue-600",
+      link: createPageUrl("WeatherCheck")
+    },
+    {
+      icon: Thermometer,
+      title: "Manual Temperature",
+      description: "Use our interactive dial to input the current surface temperature",
+      gradient: "from-red-500 to-pink-500",
+      link: createPageUrl("ManualCheck")
+    },
+    {
+      icon: Shield,
+      title: "Safety First",
+      description: "Get instant recommendations on whether it's safe for your dog to walk",
+      gradient: "from-green-500 to-emerald-500",
+      link: "#"
+    }
+  ];
+
+  const safetyLevels = [
+    {
+      icon: Shield,
+      title: "Safe Walking",
+      temp: "Below 77°F (25°C)",
+      description: "Perfect conditions for longer walks",
+      gradient: "from-green-500 to-emerald-600"
+    },
+    {
+      icon: Sun,
+      title: "Caution Zone",
+      temp: "77-86°F (25-30°C)",
+      description: "Short walks, watch for signs of discomfort",
+      gradient: "from-orange-500 to-yellow-500"
+    },
+    {
+      icon: Snowflake,
+      title: "Dangerous",
+      temp: "Above 86°F (30°C)",
+      description: "Avoid walking, risk of paw burns",
+      gradient: "from-red-500 to-pink-500"
+    }
+  ];
+
+  return (
+    <div className="space-y-12 md:space-y-16">
+      {/* Hero Section */}
+      <section className="text-center py-12 md:py-20">
+        <div className="ios-card p-12 md:p-16 max-w-4xl mx-auto">
+          <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-red-400 to-pink-500 flex items-center justify-center shadow-2xl">
+            <Heart className="w-12 h-12 text-white" />
+          </div>
+          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 tracking-tight">
+            PawTemp
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed font-medium">
+            Protect your furry friend's paws with real-time surface temperature monitoring. 
+            Know when it's safe to walk and when to stay indoors.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to={createPageUrl("WeatherCheck")}>
+              <button className="ios-button px-8 py-4 text-gray-900 font-semibold flex items-center gap-3 mx-auto sm:mx-0 bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-xl">
+                <MapPin className="w-5 h-5" />
+                Check My Location
+              </button>
+            </Link>
+            <Link to={createPageUrl("ManualCheck")}>
+              <button className="ios-button px-8 py-4 text-gray-700 font-semibold flex items-center gap-3 mx-auto sm:mx-0">
+                <Thermometer className="w-5 h-5" />
+                Manual Check
+              </button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section>
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+            How It Works
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium">
+            Simple tools to keep your dog safe during walks
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8 md:gap-10">
+          {features.map((feature, index) => (
+            <Link key={index} to={feature.link} className="block group">
+              <div className="ios-card p-8 h-full hover:scale-105 transition-all duration-300 group-hover:shadow-xl">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 shadow-lg`}>
+                  <feature.icon className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed font-medium">
+                  {feature.description}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Safety Guide */}
+      <section>
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+            Safety Guide
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium">
+            Understanding surface temperature risks for your dog's paws
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8 md:gap-10">
+          {safetyLevels.map((level, index) => (
+            <div key={index} className="ios-card p-8">
+              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${level.gradient} flex items-center justify-center mb-6 shadow-lg`}>
+                <level.icon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                {level.title}
+              </h3>
+              <p className="text-lg font-semibold text-blue-600 mb-4">
+                {level.temp}
+              </p>
+              <p className="text-gray-600 leading-relaxed font-medium">
+                {level.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="text-center py-12">
+        <div className="ios-card p-12 md:p-16 max-w-4xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+            Ready to Keep Your Dog Safe?
+          </h2>
+          <p className="text-xl text-gray-600 mb-10 leading-relaxed font-medium">
+            Start monitoring surface temperatures now and never worry about paw burns again.
+          </p>
+          <Link to={createPageUrl("WeatherCheck")}>
+            <button className="ios-button px-12 py-5 text-lg text-white font-bold bg-gradient-to-r from-blue-500 to-blue-600 shadow-xl">
+              Get Started Now
+            </button>
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}

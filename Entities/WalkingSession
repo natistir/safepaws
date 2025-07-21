@@ -1,0 +1,45 @@
+{
+  "name": "WalkingSession",
+  "type": "object",
+  "properties": {
+    "temperature": {
+      "type": "number",
+      "description": "Surface temperature recorded"
+    },
+    "unit": {
+      "type": "string",
+      "enum": [
+        "fahrenheit",
+        "celsius"
+      ],
+      "default": "fahrenheit",
+      "description": "Temperature unit"
+    },
+    "location": {
+      "type": "string",
+      "description": "Location where temperature was recorded"
+    },
+    "safety_level": {
+      "type": "string",
+      "enum": [
+        "safe",
+        "caution",
+        "dangerous"
+      ],
+      "description": "Safety assessment for dog walking"
+    },
+    "recommendation": {
+      "type": "string",
+      "description": "Walking recommendation based on temperature"
+    },
+    "walk_duration": {
+      "type": "number",
+      "description": "Recommended walk duration in minutes"
+    }
+  },
+  "required": [
+    "temperature",
+    "unit",
+    "safety_level"
+  ]
+}

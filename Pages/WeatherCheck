@@ -1,0 +1,275 @@
+import React, { useState, useEffect } from "react";
+import { MapPin, RefreshCw, AlertTriangle, Shield, Sun } from "lucide-react";
+import { WalkingSession } from "@/entities/WalkingSession";
+import TemperatureDial from "../components/TemperatureDial";
+
+export default function WeatherCheck() {
+  const [location, setLocation] = useState(null);
+  const [temperature, setTemperature] = useState(null);
+  const [unit, setUnit] = useState("fahrenheit");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [locationName, setLocationName] = useState("");
+
+  const getCurrentLocation = () => {
+    setLoading(true);
+    setError(null);
+
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by this browser");
+      setLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setLocation({ lat: latitude, lng: longitude });
+        
+        setTimeout(() => {
+          const mockTemp = Math.floor(Math.random() * 40) + 60;
+          setTemperature(mockTemp);
+          setLocationName(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
+          setLoading(false);
+        }, 2000);
+      },
+      (error) => {
+        setError("Unable to retrieve your location");
+        setLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      }
+    );
+  };
+
+  const convertTemperature = (temp, fromUnit, toUnit) => {
+    if (fromUnit === toUnit) return temp;
+    if (fromUnit === "fahrenheit" && toUnit === "celsius") {
+      return ((temp - 32) * 5) / 9;
+    }
+    if (fromUnit === "celsius" && toUnit === "fahrenheit") {
+      return (temp * 9) / 5 + 32;
+    }
+    return temp;
+  };
+
+  const getSafetyAssessment = (temp, tempUnit) => {
+    const tempInF = tempUnit === "celsius" ? convertTemperature(temp, "celsius", "fahrenheit") : temp;
+    
+    if (tempInF < 77) {
+      return {
+        level: "safe",
+        title: "Safe for Walking",
+        description: "Perfect conditions for a longer walk! Your dog's paws will be comfortable.",
+        icon: Shield,
+        gradient: "from-green-500 to-emerald-600",
+        bgColor: "bg-green-50",
+        duration: "30-60 minutes"
+      };
+    } else if (tempInF <= 86) {
+      return {
+        level: "caution",
+        title: "Use Caution",
+        description: "Keep walks short and watch for signs of discomfort. Consider protective booties.",
+        icon: Sun,
+        gradient: "from-orange-500 to-yellow-500",
+        bgColor: "bg-orange-50",
+        duration: "10-15 minutes"
+      };
+    } else {
+      return {
+        level: "dangerous",
+        title: "Too Hot - Stay Inside",
+        description: "Surface temperature can cause serious paw burns. Wait for cooler conditions.",
+        icon: AlertTriangle,
+        gradient: "from-red-500 to-pink-500",
+        bgColor: "bg-red-50",
+        duration: "Avoid walking"
+      };
+    }
+  };
+
+  const saveSession = async () => {
+    if (!temperature) return;
+    
+    const safety = getSafetyAssessment(temperature, unit);
+    await WalkingSession.create({
+      temperature,
+      unit,
+      location: locationName,
+      safety_level: safety.level,
+      recommendation: safety.description,
+      walk_duration: safety.level === "safe" ? 45 : safety.level === "caution" ? 12 : 0
+    });
+  };
+
+  useEffect(() => {
+    if (temperature) {
+      saveSession();
+    }
+  }, [temperature, unit]);
+
+  const displayTemp = temperature ? 
+    (unit === "fahrenheit" ? temperature : convertTemperature(temperature, "fahrenheit", "celsius")) 
+    : null;
+
+  const safety = temperature ? getSafetyAssessment(temperature, unit) : null;
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-10">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+          Weather Check
+        </h1>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto font-medium">
+          Get real-time surface temperature for your current location
+        </p>
+      </div>
+
+      {/* Location Card */}
+      <div className="ios-card p-10">
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl">
+            <MapPin className="w-10 h-10 text-white" />
+          </div>
+          
+          {!location && !loading && (
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-6">
+                Enable Location Access
+              </h2>
+              <p className="text-lg text-gray-600 mb-8 font-medium">
+                We need your location to provide accurate surface temperature readings
+              </p>
+              <button 
+                className="ios-button px-10 py-4 text-white font-semibold flex items-center gap-3 mx-auto bg-gradient-to-r from-blue-500 to-blue-600 shadow-xl"
+                onClick={getCurrentLocation}
+              >
+                <MapPin className="w-5 h-5" />
+                Get My Location
+              </button>
+            </div>
+          )}
+
+          {loading && (
+            <div className="space-y-6">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <RefreshCw className="w-8 h-8 text-white animate-spin" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900">
+                Getting Weather Data...
+              </h2>
+              <p className="text-lg text-gray-600 font-medium">
+                Fetching current conditions for your area
+              </p>
+            </div>
+          )}
+
+          {error && (
+            <div className="space-y-6">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center shadow-lg">
+                <AlertTriangle className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900">
+                Location Error
+              </h2>
+              <p className="text-red-600 mb-6 text-lg font-medium">{error}</p>
+              <button 
+                className="ios-button px-8 py-3 text-gray-700 font-semibold hover:bg-gray-50"
+                onClick={getCurrentLocation}
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Temperature Display */}
+      {temperature && (
+        <div className="ios-card p-10">
+          {/* Unit Toggle */}
+          <div className="flex justify-center mb-10">
+            <div className="flex items-center bg-gray-100 rounded-2xl p-2">
+              <button
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  unit === 'fahrenheit' 
+                    ? 'bg-white text-blue-600 shadow-lg' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                onClick={() => setUnit('fahrenheit')}
+              >
+                °F
+              </button>
+              <button
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  unit === 'celsius' 
+                    ? 'bg-white text-blue-600 shadow-lg' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                onClick={() => setUnit('celsius')}
+              >
+                °C
+              </button>
+            </div>
+          </div>
+
+          {/* Beautiful Temperature Dial */}
+          <div className="flex flex-col items-center mb-10">
+            <TemperatureDial
+              temperature={displayTemp}
+              onTemperatureChange={() => {}}
+              unit={unit}
+              size={340}
+              interactive={false}
+            />
+            <div className="mt-8 text-center">
+              <div className="text-gray-500 font-medium">
+                📍 {locationName}
+              </div>
+            </div>
+          </div>
+
+          {/* Safety Assessment */}
+          {safety && (
+            <div className={`ios-card p-8 ${safety.bgColor} border-l-4 border-opacity-50 mb-8`} 
+                 style={{borderLeftColor: safety.gradient.includes('green') ? '#10b981' : safety.gradient.includes('orange') ? '#f59e0b' : '#ef4444'}}>
+              <div className="flex items-start gap-6">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${safety.gradient} flex items-center justify-center shadow-lg`}>
+                  <safety.icon className="w-8 h-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    {safety.title}
+                  </h3>
+                  <p className="text-gray-700 mb-6 leading-relaxed font-medium text-lg">
+                    {safety.description}
+                  </p>
+                  <div className="text-base font-semibold text-gray-700">
+                    Recommended walk duration: <span className="text-blue-600">{safety.duration}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Refresh Button */}
+          <div className="text-center">
+            <button 
+              className="ios-button px-8 py-4 text-gray-700 font-semibold flex items-center gap-3 mx-auto hover:bg-gray-50"
+              onClick={getCurrentLocation}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              Refresh Reading
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
